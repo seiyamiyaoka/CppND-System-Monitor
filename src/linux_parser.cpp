@@ -106,18 +106,101 @@ long LinuxParser::UpTime() {
   return 0;
 }
 
-// TODO: Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
+Jiffie LinuxParser::Jiffies() {
+  std::string name;
+  std::string linestream;
+  std::string line;
+
+  Jiffie jiffie;
+
+  int user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
+
+  std::ifstream filestream(kProcDirectory + kStatFilename);
+  if(filestream.is_open()) {
+    std::getline(filestream, line);
+    std::istringstream linestream(line);
+    linestream >> name >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
+
+    jiffie.user = user;
+    jiffie.nice = nice;
+    jiffie.system = system;
+    jiffie.idle = idle;
+    jiffie.iowait = iowait;
+    jiffie.irq = irq;
+    jiffie.softirq = softirq;
+    jiffie.steal = steal;
+    jiffie.guest = guest;
+    jiffie.guest_nice = guest_nice;
+  }
+  return jiffie;
+}
 
 // TODO: Read and return the number of active jiffies for a PID
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
+PidJiffie LinuxParser::ActiveJiffies(int pid) {
+  // file index
+  // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+  const int UTIME = 14;
+  const int SUTIME = 15;
+  const int CUTIME = 16;
+  const int CSTIME = 17;
+  const int STARTTIME = 22;
+  
+  PidJiffie pidJiffie;
+  long utime, sutime, cutime, cstime, starttime, dust;
+  string line;
+  int counter = 1;
+  
+  string process_dir = LinuxParser::kProcDirectory + "/"+ to_string(pid) + "/"+ LinuxParser::kStatFilename;
+  std::ifstream filestream(process_dir);
+  if (filestream.is_open()) {
+    std::getline(filestream, line);
+    std::istringstream linestream(line);
+    while(linestream) {
+      switch (counter)
+      {
+      case UTIME:
+        linestream >> utime;
+        pidJiffie.utime = utime;
+        break;
+      case SUTIME:
+        linestream >> sutime;
+        pidJiffie.sutime = sutime;
+        break;
+      case CUTIME:
+        linestream >> cutime;
+        pidJiffie.cutime = cutime;
+        break;
+      case CSTIME:
+        linestream >> cstime;
+        pidJiffie.cstime = cstime;
+        break;
+      case STARTTIME:
+        linestream >> starttime;
+        pidJiffie.starttime = starttime;
+        break;
+      default:
+        linestream >> dust;
+        break;
+      }
+      counter++;
+      if(counter > 22)
+        break;
+    };
+    return pidJiffie;
+  }
+}
 
-// TODO: Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
+long LinuxParser::ActiveJiffies() {
+  Jiffie jiffie = LinuxParser::Jiffies();
 
-// TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+  return jiffie.user + jiffie.nice + jiffie.system + jiffie.irq + jiffie.softirq + jiffie.steal;
+}
+
+long LinuxParser::IdleJiffies() {
+  Jiffie jiffie = LinuxParser::Jiffies();
+
+  return jiffie.idle + jiffie.iowait;
+}
 
 vector<string> LinuxParser::CpuUtilization() { return {}; }
 
@@ -229,30 +312,20 @@ string LinuxParser::User(int pid) {
 }
 
 long int LinuxParser::UpTime(int pid) {
-  const int UPTIME = 22;
-  string uptime, dust;
-  string line;
-  int counter = 1;
-  
-  string process_dir = LinuxParser::kProcDirectory + "/"+ to_string(pid) + "/"+ LinuxParser::kStatFilename;
-  std::ifstream filestream(process_dir);
-  if (filestream.is_open()) {
-    std::getline(filestream, line);
+  long  starttime{0};
+  long hertz = sysconf(_SC_CLK_TCK);
+  string value, line;
+  int count = 0;
+  std::ifstream stream(kProcDirectory + "/" + to_string(pid)+ "/" + kStatFilename);
+  if (stream.is_open()) {
+    std::getline(stream, line);
     std::istringstream linestream(line);
-    while(linestream) {
-      switch (counter) {
-        case UPTIME:
-          linestream >> uptime;
-          break;
-        default:
-          linestream >> dust;
-          break;
+    while(linestream >> value){
+      ++count;
+      switch(count){
+        case 22: starttime = stol(value,nullptr,10); break;
       }
-      counter++;
-      if(counter > 23)
-        break;
     }
-    return std::stol(uptime) / sysconf(_SC_CLK_TCK);
   }
-  return 0;
+  return (UpTime() - (starttime / hertz)); 
 }

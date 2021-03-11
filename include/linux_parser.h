@@ -5,6 +5,27 @@
 #include <regex>
 #include <string>
 
+struct Jiffie {
+  int user;
+  int nice;
+  int system;
+  int idle;
+  int iowait;
+  int irq;
+  int softirq;
+  int steal;
+  int guest;
+  int guest_nice;
+};
+
+struct PidJiffie {
+  long utime;
+  long sutime;
+  long cutime;
+  long cstime;
+  long starttime;
+};
+
 namespace LinuxParser {
 // Paths
 const std::string kProcDirectory{"/proc/"};
@@ -41,10 +62,10 @@ enum CPUStates {
   kGuestNice_
 };
 std::vector<std::string> CpuUtilization();
-long Jiffies();
+Jiffie Jiffies();
 long ActiveJiffies();
-long ActiveJiffies(int pid);
 long IdleJiffies();
+PidJiffie ActiveJiffies(int pid);
 
 // Processes
 std::string Command(int pid);

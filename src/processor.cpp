@@ -29,8 +29,8 @@ float Processor::Utilization() {
     std::istringstream linestream(line);
     linestream >> name >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
     
-    idle = idle + iowait;
-    nonIdle = user + nice + system + irq + softirq + steal;
+    idle = LinuxParser::IdleJiffies();
+    nonIdle = LinuxParser::ActiveJiffies();
     
     prevTotal = prevIdle + prevNonIdle;
     total = idle + nonIdle;
@@ -41,7 +41,7 @@ float Processor::Utilization() {
     
     // Keep the current value for use in the next loop.
     this->user = user;
-    this->guest_nice = nice;
+    this->guest_nice = guest_nice;
     this->nice = nice;
     this->idle = idle;
     this->iowait = iowait;
