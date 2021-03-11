@@ -146,7 +146,7 @@ PidJiffie LinuxParser::ActiveJiffies(int pid) {
   const int STARTTIME = 22;
   
   PidJiffie pidJiffie;
-  long utime, sutime, cutime, cstime, starttime, dust;
+  string utime, sutime, cutime, cstime, starttime, dust;
   string line;
   int counter = 1;
   
@@ -160,23 +160,23 @@ PidJiffie LinuxParser::ActiveJiffies(int pid) {
       {
       case UTIME:
         linestream >> utime;
-        pidJiffie.utime = utime;
+        pidJiffie.utime = stol(utime);
         break;
       case SUTIME:
         linestream >> sutime;
-        pidJiffie.sutime = sutime;
+        pidJiffie.sutime = stol(sutime);
         break;
       case CUTIME:
         linestream >> cutime;
-        pidJiffie.cutime = cutime;
+        pidJiffie.cutime = stol(cutime);
         break;
       case CSTIME:
         linestream >> cstime;
-        pidJiffie.cstime = cstime;
+        pidJiffie.cstime = stol(cstime);
         break;
       case STARTTIME:
         linestream >> starttime;
-        pidJiffie.starttime = starttime;
+        pidJiffie.starttime = stol(starttime);
         break;
       default:
         linestream >> dust;
@@ -186,8 +186,8 @@ PidJiffie LinuxParser::ActiveJiffies(int pid) {
       if(counter > 22)
         break;
     };
-    return pidJiffie;
   }
+  return pidJiffie;
 }
 
 long LinuxParser::ActiveJiffies() {
